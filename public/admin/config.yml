@@ -2,7 +2,7 @@ backend:
   name: github
   repo: mohekouzhuxiangyu/blog
   branch: main
-  base_url: https://api.netlify.com
+  base_url: https://oauth.decapcms.org
   auth_endpoint: auth
 
 publish_mode: editorial_workflow
