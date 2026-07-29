@@ -40,7 +40,7 @@ export async function readFile(
   const res = await fetch(url, { headers: headers(token) });
   if (!res.ok) throw new Error(await res.text());
   const data = await res.json();
-  const decoded = atob(data.content.replace(/\n/g, ""));
+  const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
   return { content: decoded, sha: data.sha };
 }
 
