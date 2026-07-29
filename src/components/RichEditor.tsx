@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState, useMemo } from "react";
+import { useCallback, useRef, useState, useMemo, useEffect } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import Markdown from "react-markdown";
-import { uploadImage } from "@/lib/github-api";
+// Image upload uses server API
 import remarkGfm from "remark-gfm";
 
 function Toolbar({ editor, onImageUpload }: { editor: Editor; onImageUpload?: () => void }) {
@@ -85,6 +85,16 @@ export default function RichEditor({ value, onChange }: Props) {
     },
   });
 
+  useEffect(() => {
+    if (editor && value && mode === "rich") {
+      const html = convertMdToHtml(value);
+      const currentHtml = editor.getHTML();
+      if (currentHtml !== html) {
+        editor.commands.setContent(html);
+      }
+    }
+  }, [value, editor, mode]);
+
   function handleSourceChange(val: string) {
     mdRef.current = val;
     onChange(val);
@@ -101,7 +111,15 @@ export default function RichEditor({ value, onChange }: Props) {
     }
     setUploading(true);
     try {
-      const url = await uploadImage(token, file);
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const uploadData = await uploadRes.json();
+      const url = uploadData.url;
       const mdImg = `![${file.name}](${url})`;
       if (mode === "rich" && editor) {
         editor.chain().focus().setImage({ src: url }).run();

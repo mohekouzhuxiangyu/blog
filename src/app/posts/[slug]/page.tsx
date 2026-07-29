@@ -2,8 +2,8 @@ import { getPost, getAllSlugs } from "@/lib/posts";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Markdown from "react-markdown";
-import ShareButton from "@/components/ShareButton";
 import remarkGfm from "remark-gfm";
+import ShareButton from "@/components/ShareButton";
 
 export async function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }));
@@ -12,33 +12,34 @@ export async function generateStaticParams() {
 export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = getPost(slug);
-
   if (!post) notFound();
 
   return (
     <article className="max-w-3xl mx-auto">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-      >
+      {/* Back */}
+      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
-        Back
+        Back to posts
       </Link>
 
-      <header className="mt-6 mb-10">
-        <h1 className="text-3xl font-bold tracking-tight leading-tight">{post.title}</h1>
-        <div className="flex items-center gap-3 mt-3 text-sm text-gray-500">
-          <time>{post.date}</time>
+      {/* Header */}
+      <header className="mb-10">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight text-gray-900">{post.title}</h1>
+        <div className="flex items-center gap-3 mt-4 text-sm text-gray-400">
+          <time className="flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {post.date}
+          </time>
           {post.tags && post.tags.length > 0 && (
             <>
-              <span className="text-gray-300">&middot;</span>
+              <span className="text-gray-200">&middot;</span>
               <div className="flex gap-1.5">
-                {post.tags.map((tag) => (
-                  <span key={tag} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                    {tag}
-                  </span>
+                {post.tags.map((tag: string) => (
+                  <span key={tag} className="bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-xs border border-gray-100">#{tag}</span>
                 ))}
               </div>
             </>
@@ -46,14 +47,16 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
         </div>
       </header>
 
+      {/* Content */}
       <div className="prose max-w-none">
         <Markdown remarkPlugins={[remarkGfm]}>{post.content}</Markdown>
       </div>
-        {/* Share */}
-      <div className="max-w-3xl mx-auto mt-12 pt-6 border-t border-gray-200">
+
+      {/* Share */}
+      <div className="mt-12 pt-6 border-t border-gray-100">
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">Share:</span>
-<ShareButton title={post.title} />
+          <span className="text-sm text-gray-400">Share this post</span>
+          <ShareButton title={post.title} />
         </div>
       </div>
     </article>

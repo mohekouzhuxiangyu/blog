@@ -2,12 +2,12 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { readFile, writeFile, frontmatter } from "@/lib/github-api";
-import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 import RichEditor from "@/components/RichEditor";
 
-const STORAGE_KEY = "gh_token";
+const OWNER = "mohekouzhuxiangyu";
+const REPO = "blog";
+const BRANCH = "main";
 
 export default function EditorPage() {
   return (
@@ -18,7 +18,6 @@ export default function EditorPage() {
 }
 
 function Editor() {
-  const { t } = useI18n();
   const searchParams = useSearchParams();
   const slug = searchParams.get("slug");
   const isEdit = !!slug;
@@ -32,12 +31,24 @@ function Editor() {
 
   useEffect(() => {
     if (!slug) return;
-    const token = localStorage.getItem(STORAGE_KEY);
-    if (!token) return;
     (async () => {
       try {
-        const { content } = await readFile(token, `content/${slug}.md`);
-        const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+        const res = await fetch(`/api/github/repos/${OWNER}/${REPO}/contents/content/${slug}.md?ref=${BRANCH}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const raw = Buffer
+          ? Buffer.from(data.content, "base64").toString("utf-8")
+          : atob(data.content.replace(/\n/g, ""));
+        
+        // Handle both browser and server decoding
+        let decoded: string;
+        if (typeof Buffer !== "undefined") {
+          decoded = Buffer.from(data.content, "base64").toString("utf-8");
+        } else {
+          decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
+        }
+        
+        const match = decoded.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
         if (match) {
           const fm = match[1];
           setTitle(fm.match(/title:\s*"(.+?)"/)?.[1] || "");
@@ -50,104 +61,84 @@ function Editor() {
   }, [slug]);
 
   async function handleSave() {
-    const token = localStorage.getItem(STORAGE_KEY);
-    if (!token) { setMsg({ ok: false, text: "Not logged in" }); return; }
     if (!title.trim()) { setMsg({ ok: false, text: "Title is required" }); return; }
-
     setSaving(true);
     setMsg(null);
 
-    const tags = tagsStr.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+    const tags = tagsStr.split(/[,，]/).map((t: string) => t.trim()).filter(Boolean);
     const s = slug || title.trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-").replace(/^-|-$/g, "");
-    const fullContent = frontmatter(title.trim(), date, tags) + body.trim();
-    const path = `content/${s}.md`;
+    const fullContent = `---\ntitle: "${title.trim()}"\ndate: ${date}${tags.length ? `\ntags: [${tags.map((t: string) => `"${t}"`).join(", ")}]` : ""}\ndraft: false\n---\n\n${body.trim()}`;
+    const encoded = btoa(unescape(encodeURIComponent(fullContent)));
     const commitMsg = isEdit ? `Update post: ${s}` : `New post: ${s}`;
 
     try {
-      let sha: string | undefined;
+      const body: any = { message: commitMsg, content: encoded, branch: BRANCH };
       if (isEdit) {
-        const existing = await readFile(token, path);
-        sha = existing.sha;
+        const existing = await fetch(`/api/github/repos/${OWNER}/${REPO}/contents/content/${s}.md?ref=${BRANCH}`);
+        if (existing.ok) {
+          const data = await existing.json();
+          body.sha = data.sha;
+        }
       }
-      await writeFile(token, path, fullContent, commitMsg, sha);
-      setMsg({ ok: true, text: t("published") });
+      const res = await fetch(`/api/github/repos/${OWNER}/${REPO}/contents/content/${s}.md`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Save failed");
+      }
+      setMsg({ ok: true, text: "Published!" });
     } catch (e: any) {
-      setMsg({ ok: false, text: e.message || t("deleteFailed") });
+      setMsg({ ok: false, text: e.message || "Save failed" });
     }
     setSaving(false);
   }
 
   return (
-    <div className="max-w-6xl mx-auto w-full">
+    <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <Link href="/admin/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            {t("back")}
+            Back
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight mt-2">{isEdit ? t("update") : t("newPost")}</h1>
+          <h1 className="text-2xl font-bold tracking-tight mt-2">{isEdit ? "Edit" : "New Post"}</h1>
         </div>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium block mb-1.5">{t("title")}</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-            placeholder={t("title")}
-          />
+          <label className="text-sm font-medium block mb-1.5">Title</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" placeholder="Post title" />
         </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium block mb-1.5">{t("date")}</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-            />
+            <label className="text-sm font-medium block mb-1.5">Date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
           </div>
           <div>
-            <label className="text-sm font-medium block mb-1.5">{t("tags")}</label>
-            <input
-              value={tagsStr}
-              onChange={(e) => setTagsStr(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-              placeholder={t("tagsHint")}
-            />
+            <label className="text-sm font-medium block mb-1.5">Tags</label>
+            <input value={tagsStr} onChange={(e) => setTagsStr(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" placeholder="tech, life" />
           </div>
         </div>
-
         <div>
-          <label className="text-sm font-medium block mb-1.5">{t("content")}</label>
+          <label className="text-sm font-medium block mb-1.5">Content</label>
           <RichEditor value={body} onChange={setBody} />
         </div>
       </div>
 
       <div className="flex items-center gap-4 mt-6">
-        <button
-          onClick={handleSave}
-          disabled={saving || !title.trim()}
-          className="bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-1.5"
-        >
+        <button onClick={handleSave} disabled={saving || !title.trim()} className="bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-1.5">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          {saving ? t("saving") : (isEdit ? t("update") : t("savePublish"))}
+          {saving ? "Saving..." : (isEdit ? "Update" : "Publish")}
         </button>
-
-        {msg && (
-          <span className={`text-sm ${msg.ok ? "text-green-700" : "text-red-600"}`}>
-            {msg.text}
-            {msg.ok && isEdit && <Link href={`/posts/${slug}`} className="text-blue-600 underline ml-1">{t("viewPost")}</Link>}
-            {msg.ok && !isEdit && <Link href="/admin/" className="text-blue-600 underline ml-1">{t("backToAdmin")}</Link>}
-          </span>
-        )}
+        {msg && <span className={`text-sm ${msg.ok ? "text-green-700" : "text-red-600"}`}>{msg.text}</span>}
       </div>
     </div>
   );
