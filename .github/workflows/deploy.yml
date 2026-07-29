@@ -32,22 +32,26 @@ jobs:
         with:
           path: out
 
-      # Deploy to Gitee Pages (only if GITEE_TOKEN is configured)
+      # Deploy to Gitee Pages (skip if GITEE_TOKEN not set)
       - name: Deploy to Gitee Pages
-        if: secrets.GITEE_TOKEN != ''
         env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
           GITEE_USER: ${{ secrets.GITEE_USER }}
           GITEE_REPO: ${{ secrets.GITEE_REPO || 'blog' }}
         run: |
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "GITEE_TOKEN not configured, skipping Gitee sync"
+            exit 0
+          fi
           cd out
           git init -b pages
           git config user.name "bot"
           git config user.email "bot@localhost"
           git add -A
           git commit -m "deploy $(date)"
-          git remote add origin https://${{ secrets.GITEE_USER }}:${{ secrets.GITEE_TOKEN }}@gitee.com/${{ secrets.GITEE_USER }}/${{ secrets.GITEE_REPO || 'blog' }}.git
+          git remote add origin https://${GITEE_USER}:${GITEE_TOKEN}@gitee.com/${GITEE_USER}/${GITEE_REPO}.git
           git push origin pages --force
-        shell: bash
+          echo "Gitee sync done"
 
   deploy:
     needs: build
