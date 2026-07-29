@@ -17,7 +17,7 @@ export interface Post extends PostMeta {
 async function ghFetch(path: string) {
   const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/${path}?ref=${BRANCH}`, {
     headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: "application/vnd.github.v3+json" },
-    next: { revalidate: 60 },
+    cache: "no-store",
   });
   if (!res.ok) return null;
   return res.json();
