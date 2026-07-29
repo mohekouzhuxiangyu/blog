@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="text-center py-20">
       <h1 className="text-4xl font-bold mb-4">404</h1>
       <p className="text-[var(--muted)] mb-6">Page not found</p>
-      <Link href="/blog" className="text-blue-600 underline">
+      <Link href="/" className="text-blue-600 underline">
         Go home
       </Link>
     </div>

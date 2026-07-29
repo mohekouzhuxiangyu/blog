@@ -17,7 +17,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   return (
     <article>
       <Link
-        href="/blog"
+        href="/"
         className="text-sm text-[var(--muted)] hover:text-[var(--fg)]"
       >
         &larr; Back

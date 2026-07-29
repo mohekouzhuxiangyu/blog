@@ -8,9 +8,9 @@ export default function Home() {
     <div>
       <h1 className="text-2xl font-bold mb-8">Posts</h1>
       {posts.length === 0 ? (
-        <p className="text-[var(--muted)]">
+      <p className="text-[var(--muted)]">
           No posts yet.{" "}
-          <a href="/blog/admin" className="text-blue-600 underline">
+          <a href="/admin/" className="text-blue-600 underline">
             Write the first one
           </a>
         </p>
@@ -19,7 +19,7 @@ export default function Home() {
           {posts.map((post) => (
             <article key={post.slug}>
               <Link
-                href={`/blog/posts/${post.slug}`}
+                href={`/posts/${post.slug}`}
                 className="block group"
               >
                 <h2 className="text-xl font-semibold group-hover:text-blue-600 transition-colors">

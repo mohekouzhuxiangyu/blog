@@ -16,11 +16,11 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col">
         <header className="border-b border-[var(--border)]">
           <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-            <a href="/blog" className="text-lg font-bold hover:opacity-70">
+            <a href="/" className="text-lg font-bold hover:opacity-70">
               My Blog
             </a>
             <a
-              href="/blog/admin"
+              href="/admin/"
               className="text-sm text-[var(--muted)] hover:text-[var(--fg)]"
             >
               Write
