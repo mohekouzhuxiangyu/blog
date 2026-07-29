@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useMemo } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
 import Markdown from "react-markdown";
+import { uploadImage } from "@/lib/github-api";
 import remarkGfm from "remark-gfm";
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({ editor, onImageUpload }: { editor: Editor; onImageUpload?: () => void }) {
   const btn = (label: string, action: () => void, active?: boolean) => (
     <button
       type="button"
@@ -36,6 +38,17 @@ function Toolbar({ editor }: { editor: Editor }) {
       {btn("<>", () => editor.chain().focus().toggleCodeBlock().run(), editor.isActive("codeBlock"))}
       <span className="w-px bg-gray-200 mx-1" />
       {btn("HR", () => editor.chain().focus().setHorizontalRule().run())}
+      <span className="w-px bg-gray-200 mx-1" />
+      {onImageUpload && (
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); onImageUpload(); }}
+          className="px-2 py-1 text-xs rounded border text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+          title="Upload Image"
+        >
+          🖼
+        </button>
+      )}
     </div>
   );
 }
@@ -48,13 +61,16 @@ interface Props {
 export default function RichEditor({ value, onChange }: Props) {
   const [mode, setMode] = useState<"rich" | "source">("rich");
   const [view, setView] = useState<"editor" | "preview" | "split">("split");
+  const [uploading, setUploading] = useState(false);
   const mdRef = useRef(value);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
+      Image.configure({ inline: false }),
       Placeholder.configure({ placeholder: "Start writing..." }),
     ],
     content: convertMdToHtml(value),
@@ -72,6 +88,36 @@ export default function RichEditor({ value, onChange }: Props) {
   function handleSourceChange(val: string) {
     mdRef.current = val;
     onChange(val);
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const token = localStorage.getItem("gh_token");
+    if (!token) { alert("Not logged in"); return; }
+    if (!["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type)) {
+      alert("Only PNG, JPEG, GIF, WebP allowed");
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadImage(token, file);
+      const mdImg = `![${file.name}](${url})`;
+      if (mode === "rich" && editor) {
+        editor.chain().focus().setImage({ src: url }).run();
+      } else {
+        mdRef.current += `\n\n${mdImg}`;
+        onChange(mdRef.current);
+        if (editor && mode === "rich") {
+          const html = convertMdToHtml(mdRef.current);
+          editor.commands.setContent(html);
+        }
+      }
+    } catch (e: any) {
+      alert("Upload failed: " + (e.message || "unknown error"));
+    }
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function switchToRich() {
@@ -126,7 +172,7 @@ export default function RichEditor({ value, onChange }: Props) {
           <div className={showPreview ? "w-1/2 border-r border-gray-200" : "w-full"}>
             {mode === "rich" && editor && (
               <>
-                <Toolbar editor={editor} />
+                <Toolbar editor={editor} onImageUpload={() => fileInputRef.current?.click()} />
                 <EditorContent editor={editor} />
               </>
             )}
@@ -140,6 +186,21 @@ export default function RichEditor({ value, onChange }: Props) {
             )}
           </div>
         )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+
+      {uploading && (
+        <div className="text-xs text-blue-600 px-4 py-2 bg-blue-50 border-b border-blue-100">
+          Uploading image...
+        </div>
+      )}
 
         {/* Preview pane */}
         {showPreview && (

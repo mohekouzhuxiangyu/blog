@@ -102,7 +102,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{t("postList")}</h1>

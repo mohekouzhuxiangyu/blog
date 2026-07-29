@@ -2,6 +2,7 @@ import { getPost, getAllSlugs } from "@/lib/posts";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Markdown from "react-markdown";
+import ShareButton from "@/components/ShareButton";
 import remarkGfm from "remark-gfm";
 
 export async function generateStaticParams() {
@@ -15,7 +16,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   if (!post) notFound();
 
   return (
-    <article>
+    <article className="max-w-3xl mx-auto">
       <Link
         href="/"
         className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors"
@@ -47,6 +48,13 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
 
       <div className="prose max-w-none">
         <Markdown remarkPlugins={[remarkGfm]}>{post.content}</Markdown>
+      </div>
+        {/* Share */}
+      <div className="max-w-3xl mx-auto mt-12 pt-6 border-t border-gray-200">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">Share:</span>
+<ShareButton title={post.title} />
+        </div>
       </div>
     </article>
   );

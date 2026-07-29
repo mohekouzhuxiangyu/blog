@@ -81,6 +81,44 @@ export async function deleteFile(
   if (!res.ok) throw new Error(await res.text());
 }
 
+export async function uploadImage(
+  token: string,
+  file: File
+): Promise<string> {
+  const ext = file.name.split(".").pop() || "png";
+  const filename = `public/images/${Date.now()}.${ext}`;
+  
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64 = (reader.result as string).split(",")[1];
+        const url = `${API}/repos/${OWNER}/${REPO}/contents/${filename}`;
+        const res = await fetch(url, {
+          method: "PUT",
+          headers: headers(token),
+          body: JSON.stringify({
+            message: `Upload image: ${filename}`,
+            content: base64,
+            branch: BRANCH,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          reject(new Error(err));
+          return;
+        }
+        const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${filename}`;
+        resolve(rawUrl);
+      } catch (e: any) {
+        reject(e);
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function frontmatter(title: string, date: string, tags: string[]): string {
   const tagStr = tags.length ? `\ntags: [${tags.map((t) => `"${t}"`).join(", ")}]` : "";
   return `---\ntitle: "${title}"\ndate: ${date}${tagStr}\ndraft: false\n---\n\n`;

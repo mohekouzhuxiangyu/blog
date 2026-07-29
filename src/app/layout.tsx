@@ -49,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen flex flex-col bg-white text-gray-900 antialiased">
         <I18nProvider>
           <Nav />
-          <main className="flex-1 max-w-3xl mx-auto w-full px-5 py-10">{children}</main>
+          <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10">{children}</main>
           <Footer />
         </I18nProvider>
       </body>
