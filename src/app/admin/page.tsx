@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { listContent, readFile, deleteFile, GhFile } from "@/lib/github-api";
+import Link from "next/link";
 
 const STORAGE_KEY = "gh_token";
 
@@ -97,12 +98,12 @@ export default function AdminPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold">Posts</h1>
         <div className="flex gap-2">
-          <a
+          <Link
             href="/admin/editor"
             className="bg-black text-white px-3 py-1.5 rounded text-sm hover:opacity-80"
           >
             + New Post
-          </a>
+          </Link>
           <button
             onClick={handleLogout}
             className="border border-[var(--border)] px-3 py-1.5 rounded text-sm hover:bg-gray-50"
@@ -118,9 +119,9 @@ export default function AdminPage() {
       {files.length === 0 && !loading && (
         <p className="text-[var(--muted)]">
           No posts yet.{" "}
-          <a href="/admin/editor" className="text-blue-600 underline">
+          <Link href="/admin/editor" className="text-blue-600 underline">
             Write one
-          </a>
+          </Link>
         </p>
       )}
 
@@ -132,19 +133,19 @@ export default function AdminPage() {
               key={f.name}
               className="flex items-center justify-between border border-[var(--border)] rounded px-4 py-3"
             >
-              <a
+              <Link
                 href={`/posts/${slug}`}
                 className="font-medium hover:text-blue-600"
               >
                 {slug}
-              </a>
+              </Link>
               <div className="flex gap-2">
-                <a
+                <Link
                   href={`/admin/editor?slug=${slug}`}
                   className="text-sm text-blue-600 hover:underline"
                 >
                   Edit
-                </a>
+                </Link>
                 <button
                   onClick={() => handleDelete(f.name)}
                   className="text-sm text-red-600 hover:underline"

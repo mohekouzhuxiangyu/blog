@@ -158,8 +158,8 @@ function Editor() {
       {msg && (
         <p className={`mt-4 text-sm ${msg.ok ? "text-green-700" : "text-red-600"}`}>
           {msg.text}
-          {msg.ok && isEdit && <a href={`/posts/${slug}`} className="text-blue-600 underline ml-1">here</a>}
-          {msg.ok && !isEdit && <a href={`/admin`} className="text-blue-600 underline ml-1">Go to Admin</a>}
+          {msg.ok && isEdit && <Link href={`/posts/${slug}`} className="text-blue-600 underline ml-1">here</Link>}
+          {msg.ok && !isEdit && <Link href={`/admin`} className="text-blue-600 underline ml-1">Go to Admin</Link>}
         </p>
       )}
 

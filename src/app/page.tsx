@@ -10,9 +10,9 @@ export default function Home() {
       {posts.length === 0 ? (
       <p className="text-[var(--muted)]">
           No posts yet.{" "}
-          <a href="/admin/" className="text-blue-600 underline">
+          <Link href="/admin/" className="text-blue-600 underline">
             Write the first one
-          </a>
+          </Link>
         </p>
       ) : (
         <div className="space-y-6">
