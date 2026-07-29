@@ -103,8 +103,6 @@ export default function RichEditor({ value, onChange }: Props) {
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const token = localStorage.getItem("gh_token");
-    if (!token) { alert("Not logged in"); return; }
     if (!["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type)) {
       alert("Only PNG, JPEG, GIF, WebP allowed");
       return;
