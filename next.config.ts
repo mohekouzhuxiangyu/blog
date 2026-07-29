@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: "export",
   images: { unoptimized: true },
   outputFileTracingRoot: process.cwd(),
+  trailingSlash: true,
   basePath: "/blog",
 };
 

@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { readFile, writeFile, frontmatter } from "@/lib/github-api";
 import Markdown from "react-markdown";
@@ -12,7 +11,7 @@ const STORAGE_KEY = "gh_token";
 
 export default function EditorPage() {
   return (
-    <Suspense fallback={<div className="text-sm text-[var(--muted)] mt-8">Loading editor...</div>}>
+    <Suspense fallback={<div className="text-sm text-gray-400 mt-8 text-center py-12">Loading...</div>}>
       <Editor />
     </Suspense>
   );
@@ -40,12 +39,9 @@ function Editor() {
         const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
         if (match) {
           const fm = match[1];
-          const t = fm.match(/title:\s*"(.+?)"/)?.[1] || "";
-          const d = fm.match(/date:\s*(.+)/)?.[1] || "";
-          const tg = fm.match(/tags:\s*\[(.+?)\]/)?.[1] || "";
-          setTitle(t);
-          setDate(d.replace(/T.*$/, ""));
-          setTagsStr(tg ? tg.replace(/"/g, "") : "");
+          setTitle(fm.match(/title:\s*"(.+?)"/)?.[1] || "");
+          setDate((fm.match(/date:\s*(.+)/)?.[1] || "").replace(/T.*$/, ""));
+          setTagsStr((fm.match(/tags:\s*\[(.+?)\]/)?.[1] || "").replace(/"/g, ""));
           setBody(match[2].trim());
         }
       } catch {}
@@ -54,21 +50,13 @@ function Editor() {
 
   async function handleSave() {
     const token = localStorage.getItem(STORAGE_KEY);
-    if (!token) {
-      setMsg({ ok: false, text: "Not logged in" });
-      return;
-    }
-    if (!title.trim()) {
-      setMsg({ ok: false, text: "Title is required" });
-      return;
-    }
+    if (!token) { setMsg({ ok: false, text: "Not logged in" }); return; }
+    if (!title.trim()) { setMsg({ ok: false, text: "Title is required" }); return; }
+
     setSaving(true);
     setMsg(null);
 
-    const tags = tagsStr
-      .split(/[,，]/)
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const tags = tagsStr.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
     const s = slug || title.trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-").replace(/^-|-$/g, "");
     const fullContent = frontmatter(title.trim(), date, tags) + body.trim();
     const path = `content/${s}.md`;
@@ -81,94 +69,102 @@ function Editor() {
         sha = existing.sha;
       }
       await writeFile(token, path, fullContent, commitMsg, sha);
-      setMsg({ ok: true, text: `Post saved! View it ` });
+      setMsg({ ok: true, text: `Published!` });
     } catch (e: any) {
       setMsg({ ok: false, text: e.message || "Save failed" });
     }
     setSaving(false);
   }
 
-  const preview = body ? `# ${title}\n\n${body}` : "";
-
   return (
     <div>
-      <Link
-        href="/admin"
-        className="text-sm text-[var(--muted)] hover:text-[var(--fg)]"
-      >
-        &larr; Back to Admin
-      </Link>
-
-      <h1 className="text-xl font-bold mt-4 mb-6">
-        {isEdit ? "Edit Post" : "New Post"}
-      </h1>
-
-      <div className="space-y-3 mb-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <label className="text-sm font-medium block mb-1">Title</label>
+          <Link href="/admin/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight mt-2">{isEdit ? "Edit Post" : "New Post"}</h1>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium block mb-1.5">Title</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-[var(--border)] rounded px-3 py-2 text-sm"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             placeholder="Post title"
           />
         </div>
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="text-sm font-medium block mb-1">Date</label>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium block mb-1.5">Date</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-[var(--border)] rounded px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             />
           </div>
-          <div className="flex-1">
-            <label className="text-sm font-medium block mb-1">
-              Tags (comma separated)
-            </label>
+          <div>
+            <label className="text-sm font-medium block mb-1.5">Tags</label>
             <input
               value={tagsStr}
               onChange={(e) => setTagsStr(e.target.value)}
-              className="w-full border border-[var(--border)] rounded px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               placeholder="tech, life"
             />
           </div>
         </div>
+
         <div>
-          <label className="text-sm font-medium block mb-1">Body (Markdown)</label>
+          <label className="text-sm font-medium block mb-1.5">Content (Markdown)</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            rows={14}
-            className="w-full border border-[var(--border)] rounded px-3 py-2 text-sm font-mono"
+            rows={16}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             placeholder="Write your post in Markdown..."
           />
         </div>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="bg-black text-white px-5 py-2 rounded text-sm hover:opacity-80 disabled:opacity-50"
-      >
-        {saving ? "Saving..." : "Save & Publish"}
-      </button>
+      <div className="flex items-center gap-4 mt-6">
+        <button
+          onClick={handleSave}
+          disabled={saving || !title.trim()}
+          className="bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-1.5"
+        >
+          {saving ? (
+            <>Saving...</>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {isEdit ? "Update" : "Publish"}
+            </>
+          )}
+        </button>
 
-      {msg && (
-        <p className={`mt-4 text-sm ${msg.ok ? "text-green-700" : "text-red-600"}`}>
-          {msg.text}
-          {msg.ok && isEdit && <Link href={`/posts/${slug}`} className="text-blue-600 underline ml-1">here</Link>}
-          {msg.ok && !isEdit && <Link href={`/admin`} className="text-blue-600 underline ml-1">Go to Admin</Link>}
-        </p>
-      )}
+        {msg && (
+          <span className={`text-sm ${msg.ok ? "text-green-700" : "text-red-600"}`}>
+            {msg.text}
+            {msg.ok && isEdit && <Link href={`/posts/${slug}`} className="text-blue-600 underline ml-1">View post</Link>}
+            {msg.ok && !isEdit && <Link href="/admin/" className="text-blue-600 underline ml-1">Back to admin</Link>}
+          </span>
+        )}
+      </div>
 
       {body && (
-        <div className="mt-10 border-t border-[var(--border)] pt-6">
-          <h2 className="text-sm font-medium mb-3 text-[var(--muted)]">
-            Preview
-          </h2>
-          <div className="prose">
+        <div className="mt-10 border-t border-gray-200 pt-8">
+          <h2 className="text-sm font-medium text-gray-500 mb-4 uppercase tracking-wide">Preview</h2>
+          <div className="prose max-w-none">
             <Markdown remarkPlugins={[remarkGfm]}>{body}</Markdown>
           </div>
         </div>
