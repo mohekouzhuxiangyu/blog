@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages & Gitee
 
 on:
   push:
@@ -27,9 +27,26 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      # Deploy to GitHub Pages
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
+
+      # Deploy to Gitee Pages
+      - name: Deploy to Gitee Pages
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_USER: ${{ secrets.GITEE_USER }}
+          GITEE_REPO: ${{ secrets.GITEE_REPO || 'blog' }}
+        run: |
+          cd out
+          git init -b pages
+          git config user.name "bot"
+          git config user.email "bot@localhost"
+          git add -A
+          git commit -m "deploy $(date)"
+          git remote add origin https://${GITEE_USER}:${GITEE_TOKEN}@gitee.com/${GITEE_USER}/${GITEE_REPO}.git
+          git push origin pages --force
 
   deploy:
     needs: build
