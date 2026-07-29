@@ -49,7 +49,7 @@ const translations: Record<Lang, Record<string, string>> = {
     loginBtn: "登录",
   },
   en: {
-    blogName: "Xiaomi Porridge",
+    blogName: "Xiaomi ZHOU",
     posts: "Posts",
     write: "Write",
     postCount: "{n} posts",
