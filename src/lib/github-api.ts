@@ -54,7 +54,7 @@ export async function writeFile(
   const url = `${API}/repos/${OWNER}/${REPO}/contents/${path}`;
   const body: any = {
     message,
-    content: btoa(content),
+    content: btoa(unescape(encodeURIComponent(content))),
     branch: BRANCH,
   };
   if (sha) body.sha = sha;
